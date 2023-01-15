@@ -13,6 +13,8 @@ var mysql = require('mysql');
 
 var app = express();
 
+var mailvalidator = require("email-validator");
+
 // view engine setup
 //app.set('views', path.join(__dirname, 'views'));
 //app.set('view engine', 'jade');
@@ -93,7 +95,10 @@ app.get('/user/:id', (req, res) => {
 })
 
 app.post('/user/', (req, res) => {
-  console.log(req.body);
+  if(!mailvalidator .validate(req.body.mail)) {
+    res.status(400).json({"error": req.body.mail + " is not a mail"});
+  }
+
   conn.query(
     "INSERT INTO user(name,mail) values (?,?)",
     [req.body.name, req.body.mail],
@@ -153,7 +158,5 @@ app.delete('/user/:id', (req, res) => {
     }
   );
 })
-
-
 
 module.exports = app;
