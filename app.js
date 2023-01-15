@@ -14,6 +14,7 @@ var mysql = require('mysql');
 var app = express();
 
 var mailvalidator = require("email-validator");
+var datevalidator = require("moment");
 
 // view engine setup
 //app.set('views', path.join(__dirname, 'views'));
@@ -64,8 +65,13 @@ app.get('/user', (req, res) => {
 
 function isNotANumber(testnumber) {
   let a = parseInt(testnumber, 10);
-  console.log('Request Id:', a);
   return isNaN(a);
+}
+
+const DATEFORMAT = 'YYYY-MM-DD hh:mm:ss';
+
+function validateDate(datestring) {
+  return datevalidator(datestring,DATEFORMAT,true).isValid()
 }
 
 app.get('/user/:id', (req, res) => {
@@ -158,5 +164,178 @@ app.delete('/user/:id', (req, res) => {
     }
   );
 })
+
+app.get('/user/:id/appointment', (req, res) => {
+  console.log('Request Id:', req.params.id);
+
+  if(isNotANumber(req.params.id)) {
+      res.status(400).json({"error":"userid " + req.params.id +  " not a number"});
+      return;
+  }
+
+  conn.query(
+    "SELECT * FROM appointment where user_id=?",
+    [req.params.id],
+    function (err, data, fields) {
+      if (err) {
+        return next(new AppError(err, 500));
+      }
+
+      // if(data.length == 0) {
+      //   res.status(404).json({"error":"userid " + req.params.id +  " not present"});
+      // } else {
+        //can use the first occurrence given the above validation
+        res.status(200).json(data);
+      // }
+    }
+  );
+})
+
+app.get('/user/:userid/appointment/:id', (req, res) => {
+  console.log('Request Id:', req.params.id);
+
+  if(isNotANumber(req.params.id)) {
+      res.status(400).json({"error":"id " + req.params.id +  " not a number"});
+      return;
+  }
+
+  conn.query(
+    "SELECT * FROM appointment where id=?",
+    [req.params.id],
+    function (err, data, fields) {
+      if (err) {
+        return next(new AppError(err, 500));
+      }
+
+      if(data.length == 0) {
+         res.status(404).json({"error":"id " + req.params.id +  " not present"});
+      } else {
+        //can use the first occurrence given the above validation
+        res.status(200).json(data[0]);
+      }
+    }
+  );
+})
+
+app.post('/user/:id/appointment', (req, res) => {
+  if(isNotANumber(req.params.id)) {
+    res.status(400).json({"error":"userid " + req.params.id +  " not a number"});
+    return;
+  }
+
+  if(req.body.start === undefined ) {
+    res.status(400).json({"error":"start is mandatory"});
+    return;
+  }
+
+  if(req.body.end === undefined ) {
+    res.status(400).json({"error":"end is mandatory"});
+    return;
+  }
+
+  if(req.body.location === undefined ) {
+    res.status(400).json({"error":"location is mandatory"});
+    return;
+  }
+
+  if(! validateDate(req.body.start)) {
+    res.status(400).json({"error": req.body.start + " should be format " + DATEFORMAT});
+    return;
+  }
+
+  if(! validateDate(req.body.end)) {
+    res.status(400).json({"error": req.body.end + " should be format " + DATEFORMAT});
+    return;
+  }
+
+  
+  // let start = '2023-01-01 01:00:00';//Date.parse('01 Jan 2023 00:00:00 GMT');
+  // let end = '2023-01-01 01:05:00';//Date.parse('01 Jan 2023 10:00:00 GMT');
+
+  conn.query(
+    "INSERT INTO appointment(location,start,end,user_id) values (?,?,?,?)",
+    [req.body.location, req.body.start, req.body.end, req.params.id],
+    function (err, data, fields) {
+      if (err) {
+        console.log(err);
+        return next(new AppError(err, 500));
+      }
+
+      res.status(200).json(
+        req.body
+      );
+    }
+  );
+})
+
+app.put('/user/:userid/appointment/:id', (req, res) => {
+  if(isNotANumber(req.params.id)) {
+    res.status(400).json({"error":"id " + req.params.id +  " not a number"});
+    return;
+  }
+
+  if(req.body.start === undefined ) {
+    res.status(400).json({"error":"start is mandatory"});
+    return;
+  }
+
+  if(req.body.end === undefined ) {
+    res.status(400).json({"error":"end is mandatory"});
+    return;
+  }
+
+  if(req.body.location === undefined ) {
+    res.status(400).json({"error":"location is mandatory"});
+    return;
+  }
+
+  if(! validateDate(req.body.start)) {
+    res.status(400).json({"error": req.body.start + " should be format " + DATEFORMAT});
+    return;
+  }
+
+  if(! validateDate(req.body.end)) {
+    res.status(400).json({"error": req.body.end + " should be format " + DATEFORMAT});
+    return;
+  }
+
+  conn.query(
+    "update appointment set location=?,start=?,end=? where id=?",
+    [req.body.location, req.body.start, req.body.end, req.params.id],
+    function (err, data, fields) {
+      if (err) {
+        console.log(err);
+        return next(new AppError(err, 500));
+      }
+
+      res.status(200).json(
+        req.body
+      );
+    }
+  );
+})
+
+app.delete('/user/:userid/appointment/:id', (req, res) => {
+  console.log("okokok" + req.params.id);
+  if(isNotANumber(req.params.id)) {
+    res.status(400).json({"error":"id " + req.params.id +  " not a number"});
+    return;
+  }
+  conn.query(
+    "delete from appointment WHERE id=?",
+    [req.params.id],
+    function (err, data, fields) {
+      console.log(err);
+      if (err) {
+        return next(new AppError(err, 500));
+      }
+
+      res.status(200).json(
+        req.body
+      );
+    }
+  );
+})
+
 
 module.exports = app;
