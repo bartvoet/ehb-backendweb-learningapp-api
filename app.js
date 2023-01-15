@@ -74,6 +74,12 @@ function validateDate(datestring) {
   return datevalidator(datestring,DATEFORMAT,true).isValid()
 }
 
+function checkValidPeriod(date1,date2) {
+  let d1 = datevalidator(date1,DATEFORMAT,true);
+  let d2 = datevalidator(date2,DATEFORMAT,true);
+  return (d2.diff(d1) > 0); 
+}
+
 app.get('/user/:id', (req, res) => {
   console.log('Request Id:', req.params.id);
 
@@ -248,6 +254,10 @@ app.post('/user/:id/appointment', (req, res) => {
     return;
   }
 
+  if(!checkValidPeriod(req.body.start, req.body.end)) {
+    res.status(400).json({"error": req.body.end + " should be after " + req.body.start});
+    return;
+  }
   
   // let start = '2023-01-01 01:00:00';//Date.parse('01 Jan 2023 00:00:00 GMT');
   // let end = '2023-01-01 01:05:00';//Date.parse('01 Jan 2023 10:00:00 GMT');
