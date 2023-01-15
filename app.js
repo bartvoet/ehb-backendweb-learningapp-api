@@ -60,8 +60,20 @@ app.get('/user', (req, res) => {
   );
 })
 
+function isNotANumber(testnumber) {
+  let a = parseInt(testnumber, 10);
+  console.log('Request Id:', a);
+  return isNaN(a);
+}
+
 app.get('/user/:id', (req, res) => {
   console.log('Request Id:', req.params.id);
+
+  if(isNotANumber(req.params.id)) {
+      res.status(400).json({"error":"userid " + req.params.id +  " not a number"});
+      return;
+  }
+
   conn.query(
     "SELECT * FROM user where id=?",
     [req.params.id],
@@ -70,9 +82,12 @@ app.get('/user/:id', (req, res) => {
         return next(new AppError(err, 500));
       }
 
-      res.status(200).json(
-        data[0]
-        );
+      if(data.length == 0) {
+        res.status(404).json({"error":"userid " + req.params.id +  " not present"});
+      } else {
+        //can use the first occurrence given the above validation
+        res.status(200).json(data[0]);
+      }
     }
   );
 })
@@ -89,13 +104,16 @@ app.post('/user/', (req, res) => {
 
       res.status(200).json(
         req.body
-        );
+      );
     }
   );
 })
 
 app.put('/user/:id', (req, res) => {
-  console.log(req.body);
+  if(isNotANumber(req.params.id)) {
+    res.status(400).json({"error":"userid " + req.params.id +  " not a number"});
+    return;
+  }
   conn.query(
     "UPDATE user SET name=?, mail=? WHERE id=?",
     [req.body.name, req.body.mail, req.params.id],
@@ -106,14 +124,17 @@ app.put('/user/:id', (req, res) => {
 
       res.status(200).json(
         req.body
-        );
+      );
     }
   );
 })
 
 
 app.delete('/user/:id', (req, res) => {
-  console.log(req.body);
+  if(isNotANumber(req.params.id)) {
+    res.status(400).json({"error":"userid " + req.params.id +  " not a number"});
+    return;
+  }
   conn.query(
     "delete from user WHERE id=?",
     [req.params.id],
@@ -122,9 +143,13 @@ app.delete('/user/:id', (req, res) => {
         return next(new AppError(err, 500));
       }
 
+      if(data.fieldCount == 0) {
+        res.status(404).json({"error":"userid " + req.params.id +  " not present"});
+      }
+
       res.status(200).json(
         req.body
-        );
+      );
     }
   );
 })
